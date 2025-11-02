@@ -1,0 +1,8 @@
+﻿{
+  "name": "mandalapulse-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "if exist build rd /s /q build && mkdir build && robocopy . build /E /NFL /NDL /NJH /NJS /NC /NS /NP /XD build .git node_modules /XF package.json package-lock.json && exit /b 0"
+  }
+}
