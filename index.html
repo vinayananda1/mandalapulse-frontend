@@ -1,4 +1,4 @@
-<!-- index.html — MandalaPulse Netlify Cloud Invocation -->
+﻿<!-- index.html â€” MandalaPulse Netlify Cloud Invocation -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a66b2" />
-  <meta name="description" content="MandalaPulse — a spiritually aligned PWA with mindful prompts and ritualized automations." />
+  <meta name="description" content="MandalaPulse â€” a spiritually aligned PWA with mindful prompts and ritualized automations." />
   <link rel="manifest" href="/manifest.json" />
 
   <!-- Favicons and app icons -->
@@ -42,7 +42,7 @@
   <input type="password" id="loginPass" placeholder="Password" />
   <button onclick="verify()">Verify</button>
 
-  <div id="result">Awaiting invocation…</div>
+  <div id="result">Awaiting invocationâ€¦</div>
 
   <script>
     // Replace with your actual Firebase project ID
@@ -72,5 +72,10 @@
       document.getElementById("result").innerText = JSON.stringify(data, null, 2);
     }
   </script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js").catch(()=>{/* sw register failed */});
+}
+</script>
 </body>
 </html>
