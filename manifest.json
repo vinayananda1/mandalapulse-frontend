@@ -40,3 +40,5 @@
   "categories": ["productivity", "lifestyle"],
   "display_override": ["standalone", "fullscreen"]
 }
+
+// "trigger": "Netlify deploy"
