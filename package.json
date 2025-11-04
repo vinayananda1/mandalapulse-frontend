@@ -1,8 +1,36 @@
-﻿{
+{
   "name": "mandalapulse-frontend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
+  "homepage": "https://mandalapulse.netlify.app",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^5.1.0"
+  },
   "scripts": {
-    "build": "if exist build rd /s /q build && mkdir build && robocopy . build /E /NFL /NDL /NJH /NJS /NC /NS /NP /XD build .git node_modules /XF package.json package-lock.json && exit /b 0"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
