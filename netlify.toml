@@ -1,4 +1,5 @@
 ﻿[build]
+  base = "mandalapulse-frontend"
   command = "npm run build"
   publish = "build"
 
