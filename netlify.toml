@@ -1,8 +1,6 @@
-@"
-[build]
+﻿[build]
   command = "npm run build"
   publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
-"@ | Set-Content -Encoding utf8 netlify.toml
