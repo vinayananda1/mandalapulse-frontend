@@ -1,6 +1,4 @@
-﻿# Trigger redeploy at Tue 4:55 PM IST
-[build]
-  base = "mandalapulse-frontend"
+﻿[build]
   command = "npm run build"
   publish = "build"
 
