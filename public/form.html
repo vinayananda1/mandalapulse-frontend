@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MandalaPulse — Demo Form</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a66b2">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <style>
+    body{font-family:system-ui,Roboto,Arial;color:#222;background:linear-gradient(180deg,#fff,#fff7e6);margin:0;padding:24px}
+    .wrap{max-width:900px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px}
+    .logo{font-weight:800;font-size:20px;letter-spacing:1px}
+    .card{background:#fff;border-radius:12px;padding:18px;margin-top:18px;box-shadow:0 8px 30px rgba(0,0,0,0.06)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    label{font-size:13px;color:#444}
+    input[type=file]{display:block}
+    button{background:#0a66b2;color:#fff;border:0;padding:10px 14px;border-radius:8px;cursor:pointer}
+    .muted{color:#666;font-size:13px}
+    .preview{margin-top:12px;padding:12px;border-radius:8px;background:#f8f9fb}
+    .k{font-weight:700;color:#333}
+    .small{font-size:13px;color:#555}
+  </style>
+  <!-- SheetJS for client-side .xlsx parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">MANDALA PULSE — Demo</div>
+      <div class="muted">A quick demo: upload an example Excel/CSV, preview the meeting, then send to scheduler.</div>
+    </header>
+
+    <div class="card" id="liveCard">
+      <h3>Live preview from backend</h3>
+      <div id="livePreview" class="preview">
+        Loading live preview...
+      </div>
+      <div style="margin-top:10px;">
+        <button id="refreshBtn">Refresh Preview</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Upload demo schedule (Excel .xlsx or CSV)</h3>
+      <div class="small">Expected: first sheet, first row headers include one of: date, datetime, time, when, scheduledAt; columns: title, organizer, notes</div>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+      <div id="fileInfo" class="muted"></div>
+
+      <div id="parsedArea" class="preview" style="display:none">
+        <div><span class="k">Parsed Meeting</span></div>
+        <div id="parsedTitle"></div>
+        <div id="parsedWhen"></div>
+        <div id="parsedOrganizer"></div>
+        <div id="parsedNotes" style="margin-top:8px"></div>
+        <div style="margin-top:12px">
+          <button id="sendScheduler">Send to Scheduler (simulate email)</button>
+          <button id="wakeBtn" style="margin-left:8px;background:#2e7d32">Schedule Wake</button>
+        </div>
+        <div id="result" class="muted" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Demo Excel example (quick)</h3>
+      <p class="small">If you want a sample file, copy this CSV text into a file named demo-schedule.csv and upload it:</p>
+      <pre class="muted" style="background:#f6f6f6;padding:10px;border-radius:6px">
+title,scheduledAt,organizer,notes
+Morning Mandala,2025-11-05T15:30:00+05:30,vinay@example.com,Test meeting from demo CSV
+</pre>
+    </div>
+  </div>
+
+<script>
+  const livePreviewEl = document.getElementById('livePreview');
+  const refreshBtn = document.getElementById('refreshBtn');
+
+  async function loadLivePreview(){
+    livePreviewEl.textContent = 'Loading...';
+    try {
+      const res = await fetch('/api/preview/next-meeting');
+      if(!res.ok) throw new Error('No preview available');
+      const j = await res.json();
+      livePreviewEl.innerHTML = `
+        <div><strong>Title:</strong> ${escapeHtml(j.title||'—')}</div>
+        <div><strong>When:</strong> ${escapeHtml(j.scheduledAt||j.when||'—')}</div>
+        <div><strong>Organizer:</strong> ${escapeHtml(j.organizer||'—')}</div>
+        <div style="margin-top:8px" class="small">${escapeHtml(j.notes||'')}</div>
+      `;
+    } catch(e){
+      livePreviewEl.textContent = 'No live preview (backend missing).';
+    }
+  }
+
+  refreshBtn.addEventListener('click', loadLivePreview);
+  loadLivePreview();
+
+  // parse uploads
+  const fileInput = document.getElementById('fileInput');
+  const parsedArea = document.getElementById('parsedArea');
+  const parsedTitle = document.getElementById('parsedTitle');
+  const parsedWhen = document.getElementById('parsedWhen');
+  const parsedOrganizer = document.getElementById('parsedOrganizer');
+  const parsedNotes = document.getElementById('parsedNotes');
+  const fileInfo = document.getElementById('fileInfo');
+  const sendScheduler = document.getElementById('sendScheduler');
+  const wakeBtn = document.getElementById('wakeBtn');
+  const result = document.getElementById('result');
+
+  function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  fileInput.addEventListener('change', async (ev)=>{
+    result.textContent = '';
+    parsedArea.style.display = 'none';
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    fileInfo.textContent = `Loaded: ${f.name} (${Math.round(f.size/1024)} KB)`;
+    // use SheetJS to parse xlsx or csv
+    const buf = await f.arrayBuffer();
+    let wb;
+    try {
+      wb = XLSX.read(buf, {type:'array'});
+    } catch(err){
+      // try CSV fallback
+      const txt = new TextDecoder().decode(buf);
+      const arr = XLSX.read(txt, {type:'string'});
+      wb = arr;
+    }
+    const sheetName = wb.SheetNames[0];
+    const sheet = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    if(!rows || rows.length === 0){ fileInfo.textContent = 'No rows found in file'; return; }
+    // pick first row that appears to have date/time
+    let found = null;
+    for(const r of rows){
+      const keys = Object.keys(r).map(k => k.toLowerCase());
+      if(keys.some(k => /date|time|when|scheduled/.test(k))){
+        found = r;
+        break;
+      }
+    }
+    if(!found) found = rows[0];
+    // normalize fields
+    const title = found.title || found.name || found.subject || '';
+    const organizer = found.organizer || found.from || found.email || '';
+    const when = found.scheduledAt || found.when || found.datetime || found.date || found.time || '';
+    const notes = found.notes || found.description || '';
+    parsedTitle.textContent = `Title: ${title || '—'}`;
+    parsedWhen.textContent = `When: ${when || '—'}`;
+    parsedOrganizer.textContent = `Organizer: ${organizer || '—'}`;
+    parsedNotes.textContent = notes || '';
+    parsedArea.style.display = 'block';
+    // attach parsed object for sending
+    parsedArea._parsed = { title, scheduledAt: when, organizer, notes };
+  });
+
+  sendScheduler.addEventListener('click', async ()=>{
+    result.textContent = 'Sending to scheduler…';
+    const payload = parsedArea._parsed;
+    if(!payload){ result.textContent = 'No parsed meeting found.'; return; }
+    // normalize scheduledAt: if 'now' or empty, set to now or 10 minutes later demo
+    try {
+      // if user provides relative strings like "now" or "10min", handle simple cases
+      let scheduledAt = payload.scheduledAt;
+      if(!scheduledAt || scheduledAt.trim()==='now'){
+        scheduledAt = new Date().toISOString();
+      } else if(/^\s*\d+\s*min/i.test(scheduledAt)){
+        const m = parseInt(scheduledAt.match(/\d+/)[0],10);
+        scheduledAt = new Date(Date.now() + m*60000).toISOString();
+      } else {
+        // try Date parse; keep ISO if possible
+        const d = new Date(scheduledAt);
+        if(!isNaN(d)) scheduledAt = d.toISOString();
+      }
+      const body = {
+        from: payload.organizer || 'demo@mandala.local',
+        subject: payload.title || 'MandalaPulse meeting',
+        body: payload.notes || '',
+        scheduledAt
+      };
+      const res = await fetch('/api/scheduler/from-email', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      if(!res.ok){
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      const jr = await res.json();
+      result.textContent = 'Scheduler accepted: ' + JSON.stringify(jr);
+    } catch(err){
+      result.textContent = 'Error: ' + err.message;
+    }
+  });
+
+  wakeBtn.addEventListener('click', async ()=>{
+    result.textContent = 'Requesting schedule/wake…';
+    const payload = parsedArea._parsed;
+    if(!payload){ result.textContent = 'No parsed meeting found.'; return; }
+    try {
+      const res = await fetch('/api/schedule-task', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ title: payload.title, scheduledAt: payload.scheduledAt, organizer: payload.organizer })
+      });
+      if(!res.ok) throw new Error(await res.text());
+      const jr = await res.json();
+      result.textContent = 'Scheduled task created: ' + (jr.taskName || JSON.stringify(jr));
+    } catch(e){
+      result.textContent = 'Error: ' + e.message;
+    }
+  });
+
+</script>
+</body>
+</html>
