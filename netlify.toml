@@ -1,7 +1,7 @@
-﻿# MandalaPulse deploy lineage — canonical root: repo root, build runs in subfolder
+﻿# MandalaPulse deploy lineage — canonical root: repo root
 [build]
-  command = "npm --prefix mandalapulse-clean run build"
-  publish = "mandalapulse-clean/build"
+  command = "npm run build"
+  publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
