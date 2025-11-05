@@ -1,7 +1,31 @@
-﻿# MandalaPulse deploy lineage — canonical root: repo root
+# MandalaPulse deploy lineage — canonical root: repo root
 [build]
   command = "npm run build"
   publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
+
+# Serve SPA routes from index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Map friendly API paths to Netlify Functions
+[[redirects]]
+  from = "/api/preview/next-meeting"
+  to = "/.netlify/functions/preview"
+  status = 200
+
+[[redirects]]
+  from = "/api/scheduler/from-email"
+  to = "/.netlify/functions/scheduler"
+  status = 200
+  methods = ["POST"]
+
+[[redirects]]
+  from = "/api/schedule-task"
+  to = "/.netlify/functions/scheduleTask"
+  status = 200
+  methods = ["POST"]
